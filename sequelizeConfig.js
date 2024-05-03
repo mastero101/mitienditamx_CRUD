@@ -50,12 +50,29 @@ const User = sequelize.define('users', {
         type: DataTypes.BOOLEAN,
         defaultValue: false,
     },
-    adresses: {
-        type: DataTypes.STRING(1000),
-        allowNull: true,
-    },
     }, {
     timestamps: false,
     });
 
-module.exports = { sequelize, Item, User };
+const Address = sequelize.define('address', {
+    user_id: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+    },
+    street: {
+        type: DataTypes.STRING,
+        allowNull: false,
+    },
+    city: {
+        type: DataTypes.STRING,
+        allowNull: false,
+    },
+    zip: {
+        type: DataTypes.STRING,
+        allowNull: false,
+    },
+    }, {
+        timestamps: false,
+    });
+
+module.exports = { sequelize, Item, User, Address };

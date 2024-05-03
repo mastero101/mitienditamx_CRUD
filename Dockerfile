@@ -26,5 +26,5 @@ EXPOSE 6001
 # Comando para ejecutar la aplicación al iniciar el contenedor
 CMD ["node", "server.js"]
 
-# docker build -t mi-tiendita-mx-CRUD .
-# docker run -p 6001:6001 mi-tiendita-mx-CRUD
+# docker build -t mi-tiendita-mx-crud .
+# docker run -p 6001:6001 mi-tiendita-mx-crud

@@ -1,11 +1,12 @@
 const express = require('express');
+const cors = require('cors');
 const swaggerUi = require('swagger-ui-express');
 const swaggerJSDoc = require('swagger-jsdoc');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const dotenv = require('dotenv');
 const mysql = require('mysql2/promise');
-const { sequelize, Item, User } = require('./sequelizeConfig');
+const { sequelize, Item, User, Address } = require('./sequelizeConfig');
 
 dotenv.config();
 
@@ -26,13 +27,16 @@ sequelize.sync();
 // Middleware para manejar JSON
 app.use(express.json());
 
+// Add CORS middleware
+app.use(cors());
+
 // Configuración de Swagger
 const swaggerOptions = {
   swaggerDefinition: {
     info: {
       title: 'MiTienditaMX CRUD API',
       description: 'API para el CRUD de items y users',
-      version: '0.9.7',
+      version: '0.9.8',
     },
   },
   apis: ['server.js'],
@@ -329,6 +333,58 @@ app.post('/users', async (req, res) => {
 /**
  * @swagger
  * /users/{id}/addresses:
+ *   get:
+ *     summary: Obtener las direcciones de un usuario por su ID.
+ *     description: Obtener las direcciones del usuario especificado por su ID.
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         description: ID del usuario del que se obtendrán las direcciones.
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Direcciones obtenidas correctamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   street:
+ *                     type: string
+ *                   city:
+ *                     type: string
+ *                   country:
+ *                     type: string
+ *       404:
+ *         description: Usuario no encontrado
+ *       500:
+ *         description: Error interno del servidor
+ */
+app.get('/users/:id/addresses', async (req, res) => {
+    const userId = req.params.id;
+  
+    try {
+      // Obtener las direcciones del usuario desde la tabla 'address'
+      const [rows] = await pool.query('SELECT street, city, zip FROM addresses WHERE user_id = ?', [userId]);
+      if (!rows.length) {
+        return res.status(404).json({ message: 'Usuario no encontrado o no tiene direcciones registradas' });
+      }
+  
+      console.log('Direcciones obtenidas correctamente');
+      res.status(200).json(rows);
+    } catch (error) {
+      console.error('Error al obtener direcciones:', error);
+      res.status(500).json({ error: 'Error interno del servidor' });
+    }
+});
+
+/**
+ * @swagger
+ * /users/{id}/addresses:
  *   put:
  *     summary: Agregar una nueva dirección al usuario.
  *     description: Agregar una nueva dirección al usuario especificado por su ID.
@@ -372,18 +428,8 @@ app.put('/users/:id/addresses', async (req, res) => {
     }
   
     try {
-      // Obtener las direcciones actuales del usuario
-      const [rows] = await pool.query('SELECT addresses FROM users WHERE id = ?', [userId]);
-      if (!rows.length) {
-        return res.status(404).json({ message: 'Usuario no encontrado' });
-      }
-  
-      const currentAddresses = rows[0].addresses || [];
-      const newAddress = { street, city, country };
-      const updatedAddresses = [...currentAddresses, newAddress];
-  
-      // Actualizar las direcciones del usuario en la base de datos
-      await pool.query('UPDATE users SET addresses = ? WHERE id = ?', [JSON.stringify(updatedAddresses), userId]);
+      // Insertar la nueva dirección en la tabla 'address'
+      await pool.query('INSERT INTO addresses (user_id, street, city, zip) VALUES (?, ?, ?, ?)', [userId, street, city, country]);
       
       console.log('Dirección agregada correctamente');
       res.status(200).json({ message: 'Dirección agregada correctamente' });
